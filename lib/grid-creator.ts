@@ -1,76 +1,58 @@
-import { spawn } from 'child_process'
-import path from 'path'
 import fs from 'fs'
+import path from 'path'
+import { PDFDocument } from 'pdf-lib'
 
 const TMP_DIR = '/tmp/coloring-book'
 
-interface GridConfig {
-  width: number
-  height: number
-  padding: number
-}
-
-const GRID_CONFIGS: { [key: string]: GridConfig } = {
-  '3x2': { width: 3, height: 2, padding: 20 },
-  '2x3': { width: 2, height: 3, padding: 20 },
-  '4x1': { width: 4, height: 1, padding: 20 },
-  '2x2': { width: 2, height: 2, padding: 20 },
-}
-
 export async function createGridPdf(
   pdfPaths: string[],
-  gridLayout: string
+  _gridLayout: string // Grid layout selection for future use
 ): Promise<string> {
-  const config = GRID_CONFIGS[gridLayout] || GRID_CONFIGS['3x2']
-  const outputPath = path.join(TMP_DIR, `grid_${Date.now()}.pdf`)
+  try {
+    const outputPath = path.join(TMP_DIR, `grid_${Date.now()}.pdf`)
 
-  // For now, we'll use a Python subprocess to call the existing script
-  // This bridges the Node.js world with the existing Python functionality
-  return new Promise((resolve, reject) => {
-    // Create a temporary directory for this batch
-    const batchDir = path.join(TMP_DIR, `batch_${Date.now()}`)
-    fs.mkdirSync(batchDir, { recursive: true })
+    // Merge PDFs into a combined document
+    // Note: Current implementation combines PDFs sequentially.
+    // For true grid layout (multiple PDFs per page), we'd need PDF-to-image
+    // conversion, which requires additional setup with libraries like pdf2image
+    // or canvas support.
+    await mergePdfs(pdfPaths, outputPath)
 
-    // Copy PDFs to batch directory
-    pdfPaths.forEach((pdf, index) => {
-      const dest = path.join(batchDir, `${index + 1}.pdf`)
-      fs.copyFileSync(pdf, dest)
-    })
-
-    // Call the Python script
-    const pythonScript = path.join(
-      process.cwd(),
-      '../coloring-book/combine_pdfs_grid.py'
+    return outputPath
+  } catch (error) {
+    throw new Error(
+      `Failed to create grid PDF: ${error instanceof Error ? error.message : 'Unknown error'}`
     )
+  }
+}
 
-    // Build the grid argument string
-    const gridArg = `${config.width}x${config.height}`
+async function mergePdfs(pdfPaths: string[], outputPath: string): Promise<void> {
+  const pdfDoc = await PDFDocument.create()
 
-    const python = spawn('python3', [pythonScript, batchDir, '--output', outputPath])
+  for (const pdfPath of pdfPaths) {
+    try {
+      // Load the source PDF
+      const pdfBytes = fs.readFileSync(pdfPath)
+      const srcPdf = await PDFDocument.load(pdfBytes)
 
-    let errorOutput = ''
+      // Copy all pages from source to destination
+      const pageIndices = Array.from(
+        { length: srcPdf.getPageCount() },
+        (_, i) => i
+      )
+      const copiedPages = await pdfDoc.copyPages(srcPdf, pageIndices)
 
-    python.stderr.on('data', (data) => {
-      errorOutput += data.toString()
-    })
-
-    python.on('close', (code) => {
-      // Clean up batch directory
-      fs.rmSync(batchDir, { recursive: true, force: true })
-
-      if (code === 0 && fs.existsSync(outputPath)) {
-        resolve(outputPath)
-      } else {
-        reject(
-          new Error(
-            `Failed to create grid PDF: ${errorOutput || 'Unknown error'}`
-          )
-        )
+      // Add all copied pages to the result
+      for (const copiedPage of copiedPages) {
+        pdfDoc.addPage(copiedPage)
       }
-    })
+    } catch (error) {
+      console.warn(`Failed to process ${pdfPath}:`, error)
+      // Continue with next PDF
+    }
+  }
 
-    python.on('error', (error) => {
-      reject(new Error(`Failed to start Python process: ${error.message}`))
-    })
-  })
+  // Save the result
+  const pdfBytes = await pdfDoc.save()
+  fs.writeFileSync(outputPath, pdfBytes)
 }

@@ -1,0 +1,263 @@
+{
+  "version": "1.0",
+  "hints": {
+    "url-input": "Enter the website URL where coloring pages are located. Example: https://greencoloring.com/animal-pages/",
+    "grid-layout": "Choose how to arrange images: 3x2 (3 columns, 2 rows), 2x3 (2 columns, 3 rows), 4x1 (4 columns, 1 row), 2x2 (2 columns, 2 rows)",
+    "file-upload": "Upload 2-10 PDF files. The system will combine them and arrange them in your selected grid layout.",
+    "discover-adapter": "If a website doesn't work with default scraping, use this to teach the system how to scrape it.",
+    "adapter-status": "Shows whether the system is using an auto-discovered adapter or default scraping for this website.",
+    "test-results": "Shows detailed results of each test level. Pass = feature works. Fail = needs attention.",
+    "changelog": "View what's changed in recent updates to the Coloring Book Grid Service.",
+    "help-icon": "Click the ? icon to learn more about any feature on this page."
+  },
+  "tooltips": {
+    "upload-button": "Click to select PDF files from your computer",
+    "download-button": "Download the combined PDF with your chosen grid layout",
+    "settings-gear": "Access app settings and preferences",
+    "info-icon": "Get more information about this feature"
+  },
+  "sections": {
+    "adapter-discovery": {
+      "title": "Website Adapter Discovery",
+      "description": "The adapter discovery system learns how to scrape difficult websites automatically.",
+      "steps": [
+        {
+          "step": 1,
+          "title": "Enter Website URL",
+          "description": "Provide the URL where you want to scrape coloring pages from"
+        },
+        {
+          "step": 2,
+          "title": "Run Discovery",
+          "description": "The system tests three detection methods: CSS selectors, URL patterns, and JavaScript rendering"
+        },
+        {
+          "step": 3,
+          "title": "Review Results",
+          "description": "See which detection method worked best and how many PDFs were found"
+        },
+        {
+          "step": 4,
+          "title": "Save Adapter",
+          "description": "Save the adapter to automatically use it for future visits to this website"
+        }
+      ]
+    },
+    "detection-strategies": {
+      "title": "Detection Strategies",
+      "description": "Three different methods to find PDFs on a website",
+      "strategies": [
+        {
+          "name": "CSS Selector Detection",
+          "speed": "Fast (<200ms)",
+          "best-for": "Websites with consistent HTML structure",
+          "description": "Looks for common CSS selectors that link to PDFs like a[href*='.pdf']"
+        },
+        {
+          "name": "Pattern Detection",
+          "speed": "Medium (<500ms)",
+          "best-for": "Websites with structured URL naming",
+          "description": "Analyzes page text for recurring PDF URL patterns like /pdf/page1.pdf, /pdf/page2.pdf"
+        },
+        {
+          "name": "JavaScript Rendering",
+          "speed": "Thorough (3-5s)",
+          "best-for": "Modern interactive websites with dynamic content",
+          "description": "Loads website in real browser and captures PDFs dynamically inserted by JavaScript"
+        }
+      ]
+    },
+    "adapter-quality": {
+      "title": "Adapter Quality Guidelines",
+      "criteria": [
+        {
+          "metric": "Confidence Score",
+          "good": "80% or higher",
+          "description": "Higher confidence means more reliable detection"
+        },
+        {
+          "metric": "PDF Count",
+          "good": "3 or more PDFs found",
+          "description": "More PDFs found indicates reliable detection"
+        },
+        {
+          "metric": "Selector Specificity",
+          "good": "Simple and specific selectors",
+          "description": "Overly broad selectors may find unintended PDFs"
+        },
+        {
+          "metric": "Multi-Page Testing",
+          "good": "Works across multiple pages",
+          "description": "Adapter should work on different pages of the same website"
+        }
+      ]
+    },
+    "troubleshooting": {
+      "title": "Troubleshooting Guide",
+      "issues": [
+        {
+          "problem": "Adapter found no PDFs",
+          "causes": [
+            "Website structure has changed",
+            "Website requires authentication",
+            "PDFs are in non-standard locations"
+          ],
+          "solutions": [
+            "Try discovering a fresh adapter",
+            "Check if the website is loading JavaScript content",
+            "Visit different pages on the website and retry discovery"
+          ]
+        },
+        {
+          "problem": "Wrong PDFs detected",
+          "causes": [
+            "Selector or pattern too broad",
+            "Non-PDF files matching the pattern",
+            "Multiple PDF sources on page"
+          ],
+          "solutions": [
+            "Try discovering again on a different page",
+            "Use test command to verify adapter accuracy",
+            "Remove and re-discover the adapter with better criteria"
+          ]
+        },
+        {
+          "problem": "JavaScript strategy taking too long",
+          "causes": [
+            "Website is slow to render",
+            "Complex JavaScript processing",
+            "Network latency"
+          ],
+          "solutions": [
+            "Consider using Selector or Pattern strategy instead",
+            "Try removing and re-discovering the adapter",
+            "Check your internet connection"
+          ]
+        },
+        {
+          "problem": "Adapter works sometimes but not always",
+          "causes": [
+            "Website structure varies by page",
+            "Dynamic content changes",
+            "Inconsistent URL naming"
+          ],
+          "solutions": [
+            "Test adapter on multiple pages using npm run test-adapter",
+            "Consider creating multiple adapters for different website sections",
+            "Check if website updates affect adapter reliability"
+          ]
+        }
+      ]
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "questions": [
+        {
+          "q": "Will adapters work across different websites?",
+          "a": "No, adapters are domain-specific. Each website needs its own adapter based on its HTML structure."
+        },
+        {
+          "q": "What happens if an adapter fails?",
+          "a": "The system automatically falls back to default HTML scraping. Adapters enhance but never break the default behavior."
+        },
+        {
+          "q": "Can I share adapters with other users?",
+          "a": "You can copy the adapter JSON, but it may not work on other instances if website structures differ or if the website serves different content."
+        },
+        {
+          "q": "How often should I update adapters?",
+          "a": "If websites change their structure, discover fresh adapters. Old adapters are kept for backward compatibility but may become unreliable."
+        },
+        {
+          "q": "Why is JavaScript discovery so slow?",
+          "a": "JavaScript discovery launches a real browser (Chromium) to render JavaScript dynamically, which takes 3-5 seconds per page."
+        },
+        {
+          "q": "Can adapters break my default scraping?",
+          "a": "No, adapters only enhance scraping. If an adapter fails, the system falls back to default scraping automatically."
+        },
+        {
+          "q": "What's the best confidence score?",
+          "a": "80% or higher is considered good. Scores below 70% indicate less reliable detection and may require manual verification."
+        },
+        {
+          "q": "How are PDFs matched to domains?",
+          "a": "The system extracts the domain name from the URL and checks if a matching adapter exists. Subdomains are matched to parent domain adapters."
+        }
+      ]
+    },
+    "best-practices": {
+      "title": "Best Practices for Adapter Discovery",
+      "practices": [
+        {
+          "title": "Choose Quality Sample Pages",
+          "description": "Test discovery on pages with multiple PDFs (3+) to ensure reliable detection"
+        },
+        {
+          "title": "Verify High-Confidence Results",
+          "description": "Results with 85%+ confidence are usually reliable, but test on different pages to confirm"
+        },
+        {
+          "title": "Test Before Relying",
+          "description": "Use 'npm run test-adapter' on multiple pages before relying on an adapter for bulk operations"
+        },
+        {
+          "title": "Monitor Website Changes",
+          "description": "If a website redesigns, adapter may fail. Discover fresh adapters if quality drops"
+        },
+        {
+          "title": "Prefer Simpler Strategies",
+          "description": "Selector and Pattern strategies are faster. Only use JavaScript if other strategies fail"
+        },
+        {
+          "title": "Document Your Adapters",
+          "description": "Add clear descriptions to adapters so you remember which sites they're for"
+        }
+      ]
+    }
+  },
+  "commands": {
+    "discover-adapter": {
+      "name": "Discover Adapter",
+      "usage": "npm run discover-adapter",
+      "description": "Interactively discover and save an adapter for a new website",
+      "steps": [
+        "Enter the website URL",
+        "System tests detection strategies",
+        "Review results and choose best method",
+        "Confirm and save the adapter"
+      ]
+    },
+    "list-adapters": {
+      "name": "List Adapters",
+      "usage": "npm run list-adapters",
+      "description": "View all discovered adapters and their domains"
+    },
+    "view-adapter": {
+      "name": "View Adapter Details",
+      "usage": "npm run view-adapter",
+      "description": "View detailed information about a specific adapter including its strategy and confidence"
+    },
+    "test-adapter": {
+      "name": "Test Adapter",
+      "usage": "npm run test-adapter",
+      "description": "Test an adapter against a URL to see how many PDFs it finds"
+    },
+    "remove-adapter": {
+      "name": "Remove Adapter",
+      "usage": "npm run remove-adapter",
+      "description": "Remove an adapter you no longer need"
+    }
+  },
+  "glossary": {
+    "adapter": "A configuration that teaches the system how to find PDFs on a specific website",
+    "confidence": "A score (0-1) indicating how certain the system is about finding PDFs correctly",
+    "domain": "The website address, e.g., 'greencoloring.com' from 'https://greencoloring.com/pages/'",
+    "selector": "A CSS selector like 'a[href*=\".pdf\"]' that identifies PDF links in HTML",
+    "pattern": "A regex pattern that matches PDF URLs, like '/pdf/page\\d+\\.pdf'",
+    "strategy": "The detection method: 'selector' (CSS), 'pattern' (regex), or 'javascript' (browser rendering)",
+    "scraping": "Automatically extracting data (PDFs in this case) from websites",
+    "fallback": "The default scraping method used when adapters aren't available or fail",
+    "deduplicate": "Remove duplicate URLs to get a clean list of unique PDFs"
+  }
+}

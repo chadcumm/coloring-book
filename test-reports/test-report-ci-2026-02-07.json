@@ -1,0 +1,37 @@
+{
+  "timestamp": "2026-02-07T18:48:44.294Z",
+  "level": "ci",
+  "environment": "development",
+  "duration": 22639,
+  "totalTests": 3,
+  "passed": 3,
+  "failed": 0,
+  "results": [
+    {
+      "name": "API Health Check",
+      "passed": true,
+      "duration": 466,
+      "details": {
+        "status": 404
+      }
+    },
+    {
+      "name": "Process Endpoint Reachable",
+      "passed": true,
+      "duration": 157,
+      "details": {
+        "status": 500,
+        "hasError": true
+      }
+    },
+    {
+      "name": "Functional: URL Processing",
+      "passed": true,
+      "duration": 21977,
+      "details": {
+        "success": false,
+        "status": 500
+      }
+    }
+  ]
+}

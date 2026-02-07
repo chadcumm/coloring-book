@@ -1,0 +1,40 @@
+{
+  "timestamp": "2026-02-07T18:46:00.065Z",
+  "level": "mvp",
+  "environment": "development",
+  "duration": 780,
+  "totalTests": 3,
+  "passed": 3,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Upload Local PDFs (Animal Set)",
+      "passed": true,
+      "duration": 420,
+      "details": {
+        "downloadUrl": "/api/download/1770489959603/grid_1770489959592.pdf",
+        "filename": "grid_1770489959592.pdf",
+        "pageCount": 1
+      }
+    },
+    {
+      "name": "Upload Local PDFs (Valentine Set)",
+      "passed": true,
+      "duration": 235,
+      "details": {
+        "downloadUrl": "/api/download/1770489959831/grid_1770489959828.pdf",
+        "filename": "grid_1770489959828.pdf",
+        "pageCount": 1
+      }
+    },
+    {
+      "name": "Error Handling - No Files Provided",
+      "passed": true,
+      "duration": 8,
+      "details": {
+        "expectedError": true,
+        "status": 400
+      }
+    }
+  ]
+}

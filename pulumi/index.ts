@@ -41,11 +41,11 @@ const lambdaRole = new aws.iam.Role('coloring-book-lambda-role', {
     statements: [
       {
         actions: ['sts:AssumeRole'],
-        effects: ['Allow'],
-        principals: {
+        effect: 'Allow',
+        principals: [{
           type: 'Service',
           identifiers: ['lambda.amazonaws.com'],
-        },
+        }],
       },
     ],
   }).then((r) => r.json),
@@ -65,7 +65,7 @@ new aws.iam.RolePolicy('lambda-s3-access', {
     statements: [
       {
         actions: ['s3:PutObject', 's3:GetObject', 's3:DeleteObject'],
-        effects: ['Allow'],
+        effect: 'Allow',
         resources: [pulumi.interpolate`${bucket.arn}/*`],
       },
     ],

@@ -12,11 +12,6 @@ interface LayoutConfig {
   rows: number
 }
 
-interface Dimensions {
-  width: number
-  height: number
-}
-
 // Map layout strings to their configurations
 const LAYOUT_MAP: Record<string, LayoutConfig> = {
   '3x2': { cols: 3, rows: 2 },

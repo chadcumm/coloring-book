@@ -2,12 +2,9 @@ import * as pulumi from '@pulumi/pulumi'
 import * as aws from '@pulumi/aws'
 import * as awsx from '@pulumi/awsx'
 
-const region = aws.config.region || 'us-east-1'
-
 // Create S3 bucket for temporary PDFs
 const bucket = new aws.s3.Bucket('coloring-book-pdfs', {
   acl: 'private',
-  region,
   corsRules: [
     {
       allowedHeaders: ['*'],

@@ -39,11 +39,6 @@ jobs:
           role-to-assume: arn:aws:iam::723474183548:role/github-actions-coloring-book-deploy
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Install Pulumi
-        uses: pulumi/actions@v4
-        with:
-          command: version
-
       - name: Deploy with Pulumi
         uses: pulumi/actions@v4
         with:

@@ -42,20 +42,25 @@ jobs:
       - name: Deploy to S3
         run: |
           # Create S3 bucket if it doesn't exist
-          BUCKET_NAME="coloring-book-web-$(date +%s)"
           if ! aws s3 ls "s3://coloring-book-web-app" 2>/dev/null; then
-            aws s3 mb s3://coloring-book-web-app --region ${{ env.AWS_REGION }} || true
+            aws s3 mb s3://coloring-book-web-app --region ${{ env.AWS_REGION }}
+            # Enable website hosting
+            aws s3 website s3://coloring-book-web-app --index-document index.html --error-document 404.html 2>/dev/null || true
           fi
 
           # Upload build artifacts
-          aws s3 sync .next/static s3://coloring-book-web-app/_next/static --cache-control "public, max-age=31536000"
-          aws s3 sync public s3://coloring-book-web-app --cache-control "public, max-age=3600"
+          aws s3 sync .next/static s3://coloring-book-web-app/_next/static --cache-control "public, max-age=31536000" --delete
 
-          # Copy HTML files without caching
-          find .next -name "*.html" -exec aws s3 cp {} s3://coloring-book-web-app/{} --cache-control "public, max-age=0, must-revalidate" \;
+          # Sync public directory if it exists
+          if [ -d public ]; then
+            aws s3 sync public s3://coloring-book-web-app --cache-control "public, max-age=3600" --delete
+          fi
+
+          # Make S3 bucket public for website access (if not already)
+          aws s3api put-bucket-acl --bucket coloring-book-web-app --acl public-read 2>/dev/null || true
 
           echo "✅ Deployment successful!"
-          echo "Application URL: https://coloring-book-web-app.s3.amazonaws.com"
+          echo "Application URL: http://coloring-book-web-app.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
 
       - name: Get deployment info
         run: |

@@ -39,16 +39,27 @@ jobs:
           role-to-assume: arn:aws:iam::723474183548:role/github-actions-coloring-book-deploy
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Deploy with Pulumi
-        uses: pulumi/actions@v4
-        with:
-          command: up
-          stack-name: coloring-book-web/dev
-          work-dir: ./pulumi
-        env:
-          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+      - name: Deploy to S3
+        run: |
+          # Create S3 bucket if it doesn't exist
+          BUCKET_NAME="coloring-book-web-$(date +%s)"
+          if ! aws s3 ls "s3://coloring-book-web-app" 2>/dev/null; then
+            aws s3 mb s3://coloring-book-web-app --region ${{ env.AWS_REGION }} || true
+          fi
+
+          # Upload build artifacts
+          aws s3 sync .next/static s3://coloring-book-web-app/_next/static --cache-control "public, max-age=31536000"
+          aws s3 sync public s3://coloring-book-web-app --cache-control "public, max-age=3600"
+
+          # Copy HTML files without caching
+          find .next -name "*.html" -exec aws s3 cp {} s3://coloring-book-web-app/{} --cache-control "public, max-age=0, must-revalidate" \;
+
+          echo "✅ Deployment successful!"
+          echo "Application URL: https://coloring-book-web-app.s3.amazonaws.com"
 
       - name: Get deployment info
         run: |
-          echo "Deployment successful!"
-          echo "Check AWS Console for deployed resources"
+          echo "Deployment to AWS S3 complete!"
+          echo "S3 Bucket: coloring-book-web-app"
+          echo "Region: us-east-1"
+          echo "Next steps: Configure CloudFront CDN for better performance"

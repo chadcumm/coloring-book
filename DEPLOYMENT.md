@@ -181,81 +181,57 @@ To customize, edit `setup-lambda.sh` before running.
 
 ## Development Workflow
 
-### 1. Start Development Server
+Every change follows a two-stage test pipeline: test locally, then deploy and verify in production. See [docs/TESTING.md](docs/TESTING.md) for the full testing guide.
+
+### 1. Make Changes
+
+Start the dev server and make your changes:
 
 ```bash
 ./start-dev.sh
 ```
 
-Opens http://localhost:3000 with hot reload.
+Opens http://localhost:3000 with hot reload. Edit source files as needed.
 
-### 2. Make Changes
+### 2. Test Locally (Stage 1)
 
-Edit `app/api/process/route.ts` to implement PDF processing:
-
-```typescript
-import { NextRequest, NextResponse } from 'next/server'
-
-export async function POST(request: NextRequest) {
-  const formData = await request.formData()
-  const gridLayout = formData.get('gridLayout') as string
-  const files = formData.getAll('files') as File[]
-  const url = formData.get('url') as string
-
-  try {
-    // TODO: Implement actual PDF processing here
-    // - Fetch PDFs from URL if provided
-    // - Upload files if provided
-    // - Create grid layout with specified dimensions
-    // - Return download URL
-
-    return NextResponse.json({
-      message: 'Processing complete',
-      downloadUrl: 'https://example.com/processed.pdf',
-    })
-  } catch (error) {
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : 'Processing failed' },
-      { status: 500 }
-    )
-  }
-}
-```
-
-### 3. Test Locally
-
-Dev server auto-reloads. Use `curl` to test API:
+Run the full local test suite before deploying:
 
 ```bash
-curl -X POST http://localhost:3000/api/process \
-  -F 'gridLayout=2x2' \
-  -F 'url=https://example.com'
+# Option A: Run the automated pipeline (recommended)
+./scripts/test-and-deploy.sh --local
+
+# Option B: Run each step manually
+npm run test:all     # Vitest: unit + system + integration (279 tests)
+npm run build        # Verify production build
+npm run test:e2e     # Playwright: API + UI browser tests against localhost
 ```
 
-### 4. Run Tests
+This covers:
+- **API tests (command line):** Health check, process endpoint, error handling
+- **UI tests (Playwright browser):** Page rendering, tab navigation, grid selector, form validation, URL submission flow
+
+### 3. Deploy & Verify Production (Stage 2)
+
+Once local tests pass, deploy and run the same tests against the live site:
 
 ```bash
-# All tests
-npm run test:all
+# Option A: Full automated pipeline (local + deploy + production)
+./scripts/test-and-deploy.sh
 
-# By type
-npm run test:unit
-npm run test:system
-npm run test:integration
-
-# Watch mode
-npm run test:watch
+# Option B: Deploy manually, then test production
+git push origin main
+npm run test:e2e:prod   # Playwright e2e against the live S3 site
 ```
 
-### 5. Deploy to Lambda
+The GitHub Actions workflow also handles this automatically on push to main:
+1. **test** job runs Vitest + Playwright against localhost
+2. **deploy** job pushes to S3 (only if tests pass)
+3. **verify** job runs Playwright against the live URL
 
-Once you're happy with local testing:
+### 4. Verify
 
-```bash
-./setup-lambda.sh
-```
-
-No need to stop the dev server - the script handles everything.
+After Stage 2, your change has been tested both locally and in production. Check the GitHub Actions run for green checkmarks across all three jobs.
 
 ---
 

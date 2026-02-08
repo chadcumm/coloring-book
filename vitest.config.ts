@@ -20,6 +20,7 @@ export default defineConfig({
         '**/dist/**',
       ],
     },
+    exclude: ['tests/e2e/**', 'node_modules/**'],
     testTimeout: 30000,
     hookTimeout: 30000,
   },

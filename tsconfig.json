@@ -51,7 +51,9 @@
   ],
   "exclude": [
     "node_modules",
-    "pulumi"
+    "pulumi",
+    "tests",
+    "playwright.config.ts"
   ],
   "ts-node": {
     "compilerOptions": {

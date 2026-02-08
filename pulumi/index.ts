@@ -60,16 +60,18 @@ new aws.iam.RolePolicyAttachment('lambda-basic-execution', {
 // Create S3 access policy for Lambda
 new aws.iam.RolePolicy('lambda-s3-access', {
   role: lambdaRole.id,
-  policy: aws.iam.getPolicyDocument({
-    version: '2012-10-17',
-    statements: [
-      {
-        actions: ['s3:PutObject', 's3:GetObject', 's3:DeleteObject'],
-        effect: 'Allow',
-        resources: [pulumi.interpolate`${bucket.arn}/*`],
-      },
-    ],
-  }).then((p) => p.json),
+  policy: pulumi.all([bucket.arn]).apply(([arn]) =>
+    aws.iam.getPolicyDocument({
+      version: '2012-10-17',
+      statements: [
+        {
+          actions: ['s3:PutObject', 's3:GetObject', 's3:DeleteObject'],
+          effect: 'Allow',
+          resources: [`${arn}/*`],
+        },
+      ],
+    }).then((p) => p.json)
+  ),
 })
 
 // Create API Gateway

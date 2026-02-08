@@ -1,0 +1,23 @@
+{
+  "upload-success": {
+    "status": 200,
+    "pdfUrls": ["/downloads/page1.pdf", "/downloads/page2.pdf"],
+    "pageCount": 2,
+    "filename": "grid_combined.pdf"
+  },
+  "grid-3x2": {
+    "layout": "3x2",
+    "pageCount": 1,
+    "dimensions": { "cols": 3, "rows": 2 }
+  },
+  "adapter-discovery": {
+    "strategy": "selector",
+    "pdfUrls": ["url1.pdf", "url2.pdf"],
+    "confidence": 0.9
+  },
+  "error-invalid-file": {
+    "status": 400,
+    "error": "Invalid file type",
+    "message": "Only PDF files are accepted"
+  }
+}

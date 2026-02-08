@@ -1,0 +1,90 @@
+{
+  "timestamp": "2026-02-07T18:48:17.729Z",
+  "level": "comprehensive",
+  "environment": "development",
+  "duration": 1149,
+  "totalTests": 8,
+  "passed": 8,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Upload Local PDFs (Animal Set)",
+      "passed": true,
+      "duration": 188,
+      "details": {
+        "downloadUrl": "/api/download/1770490096661/grid_1770490096655.pdf",
+        "filename": "grid_1770490096655.pdf",
+        "pageCount": 1
+      }
+    },
+    {
+      "name": "Upload Local PDFs (Valentine Set)",
+      "passed": true,
+      "duration": 160,
+      "details": {
+        "downloadUrl": "/api/download/1770490096844/grid_1770490096840.pdf",
+        "filename": "grid_1770490096840.pdf",
+        "pageCount": 1
+      }
+    },
+    {
+      "name": "Error Handling - No Files Provided",
+      "passed": true,
+      "duration": 8,
+      "details": {
+        "expectedError": true,
+        "status": 400
+      }
+    },
+    {
+      "name": "Grid Layout: 3x2",
+      "passed": true,
+      "duration": 156,
+      "details": {
+        "layout": "3x2",
+        "pageCount": 1,
+        "filename": "grid_1770490097010.pdf"
+      }
+    },
+    {
+      "name": "Grid Layout: 2x3",
+      "passed": true,
+      "duration": 143,
+      "details": {
+        "layout": "2x3",
+        "pageCount": 1,
+        "filename": "grid_1770490097162.pdf"
+      }
+    },
+    {
+      "name": "Grid Layout: 4x1",
+      "passed": true,
+      "duration": 136,
+      "details": {
+        "layout": "4x1",
+        "pageCount": 1,
+        "filename": "grid_1770490097305.pdf"
+      }
+    },
+    {
+      "name": "Grid Layout: 2x2",
+      "passed": true,
+      "duration": 149,
+      "details": {
+        "layout": "2x2",
+        "pageCount": 1,
+        "filename": "grid_1770490097441.pdf"
+      }
+    },
+    {
+      "name": "Performance: PDF Merge & Upload",
+      "passed": true,
+      "duration": 145,
+      "details": {
+        "duration": "145ms",
+        "responseSize": 118,
+        "pageCount": 1
+      }
+    }
+  ]
+}

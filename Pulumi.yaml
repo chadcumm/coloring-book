@@ -1,0 +1,8 @@
+name: coloring-book-web
+runtime: nodejs
+description: Coloring Book Grid Service - AWS Infrastructure
+
+config:
+  aws:region:
+    description: AWS region
+    default: us-east-1

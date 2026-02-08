@@ -1,11 +1,5 @@
 import type { DiscoveryResult } from '../adapter-types'
 
-interface PatternMatch {
-  pattern: RegExp
-  urls: Set<string>
-  confidence: number
-}
-
 /**
  * Extract all potential PDF URLs from HTML
  * Looks for URLs in both href attributes and text content

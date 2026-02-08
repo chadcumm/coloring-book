@@ -2,340 +2,286 @@
 
 ## Overview
 
-This document describes the three-level testing approach for the Coloring Book Grid Service:
+Every change follows a **two-stage testing pipeline** before it is considered verified:
 
-1. **MVP Tests** - Basic functionality validation (2-3 minutes)
-2. **Comprehensive Tests** - All features with metrics and performance (10-15 minutes)
-3. **CI/CD Tests** - Automated tests for GitHub Actions (2 minutes)
+1. **Stage 1 (Local)** - Run all tests against a locally deployed server
+2. **Stage 2 (Production)** - Deploy to main, then run the same tests against the live site
+
+Both stages include API command-line tests **and** browser-based UI tests via Playwright. This ensures nothing ships without being verified end-to-end in both environments.
 
 ---
 
 ## Quick Start
 
-### Prerequisites
+```bash
+# Full pipeline: test locally, deploy, test production
+./scripts/test-and-deploy.sh
 
-- Node.js 18+
-- `npm install` completed
-- Development server ready
+# Stage 1 only (local testing)
+./scripts/test-and-deploy.sh --local
 
-### Run Tests
+# Stage 2 only (production testing)
+./scripts/test-and-deploy.sh --prod
+```
+
+Or run individual test commands:
 
 ```bash
-# Start development server (required)
-npm run dev
-
-# In another terminal, run tests:
-npm run test:mvp        # Quick MVP tests
-npm run test:full       # All test levels
-npm run test:ci         # CI/CD tests (headless)
-npm run test:suite      # Build + Full tests (CI use)
+npm run test:all       # Vitest unit + system + integration
+npm run test:e2e       # Playwright e2e against localhost
+npm run test:e2e:prod  # Playwright e2e against production
+npm run test:local     # All Vitest + all Playwright (local)
+npm run test:deploy    # Full local tests + production e2e
 ```
 
 ---
 
-## Test Levels Explained
+## Two-Stage Pipeline
 
-### Level 1: MVP Tests
+### Stage 1: Local Testing
 
-**Purpose**: Verify core functionality works
+Runs against `http://localhost:3000`. The Playwright config auto-starts the dev server.
 
-**What it tests**:
-- ✅ Download PDFs from URL (Animal coloring pages)
-- ✅ Download PDFs from URL (Valentine coloring pages)
-- ✅ Error handling (invalid URLs)
+| Step | Command | What it tests |
+|------|---------|---------------|
+| 1a | `npm run test:all` | Unit, system, and integration tests (Vitest, 279 tests) |
+| 1b | `npm run build` | Verifies the Next.js build succeeds |
+| 1c | `npm run test:e2e` | Playwright browser tests against local dev server |
 
-**Test URLs**:
-- https://greencoloring.com/animal-coloring-pages/
-- https://greencoloring.com/valentines-day-coloring-pages/
+**Stage 1 tests include:**
 
-**Output**: Pass/fail report with test results
+- **API tests (command line):** Health endpoint, process endpoint, error handling, form validation
+- **UI tests (Playwright browser):** Page loads, tab navigation, grid selector interaction, form validation, URL submission flow
 
-**Runtime**: ~2-3 minutes
+If any step fails, the pipeline stops. Fix the issue before proceeding.
 
-**Use when**: You want quick validation before deployment
+### Stage 2: Production Testing
+
+Runs after deploying to `http://coloring-book-web-app.s3-website-us-east-1.amazonaws.com`.
+
+| Step | What happens |
+|------|-------------|
+| 2a | Push to `main` branch (triggers GitHub Actions auto-deploy to S3) |
+| 2b | Wait for deployment to propagate |
+| 2c | Verify production site returns HTTP 200 |
+| 2d | Run the **same** Playwright e2e tests against the production URL |
+| 2e | Run API smoke test against production |
+
+The same test files run in both stages -- only the `TEST_BASE_URL` environment variable changes.
+
+---
+
+## How It Runs Automatically
+
+### On Every Push to Main (GitHub Actions)
+
+The `.github/workflows/deploy.yml` workflow runs three jobs:
+
+```
+test (Stage 1)  -->  deploy (Stage 2)  -->  verify (Stage 3)
+  Vitest + e2e        Build & push to S3     e2e against prod
+```
+
+- **test**: Runs all Vitest tests, builds, installs Playwright, runs e2e
+- **deploy**: Only runs if `test` passes; deploys to S3
+- **verify**: Only runs if `deploy` succeeds; runs Playwright against the live URL
+
+### On Pull Requests
+
+The `test` job runs on every PR to `main`, so broken code cannot be merged.
+
+### Locally (Manual)
+
+Run `./scripts/test-and-deploy.sh` which performs the full two-stage pipeline from your machine:
+
+1. Runs all Vitest tests
+2. Builds the project
+3. Runs Playwright e2e against localhost
+4. Merges to main and pushes
+5. Waits for deployment
+6. Runs Playwright e2e against production
+
+---
+
+## Test Inventory
+
+### Vitest Tests (279 tests, 19 files)
+
+| Category | Files | Tests | What it covers |
+|----------|-------|-------|----------------|
+| Unit | 6 | 119 | API endpoints, grid calculations, PDF processing |
+| System | 3 | 33 | Upload, URL scraping, and grid generation workflows |
+| Integration | 3 | 45 | Complete workflows, error handling, performance |
+| Adapter | 7 | 82 | Adapter discovery, strategies, e2e adapter system |
 
 ```bash
-npm run test:mvp
+npm run test:unit          # Unit tests only
+npm run test:system        # System tests only
+npm run test:integration   # Integration tests only
+npm run test:all           # All of the above
+npm run test:coverage      # With coverage report
+npm run test:watch         # Watch mode during development
+```
+
+### Playwright E2E Tests (2 files)
+
+| File | Tests | What it covers |
+|------|-------|----------------|
+| `tests/e2e/app.spec.ts` | 9 | Page rendering, tab navigation, grid selector, form validation, URL submission |
+| `tests/e2e/api.spec.ts` | 4 | API health check, process endpoint, error responses |
+
+```bash
+npm run test:e2e           # Run against localhost (auto-starts dev server)
+npm run test:e2e:prod      # Run against production S3 URL
+npm run test:e2e:ci        # Run in CI mode (JSON reporter, no server reuse)
 ```
 
 ---
 
-### Level 2: Comprehensive Tests
+## Test Configuration
 
-**Purpose**: Validate all features and measure performance
+### Vitest (`vitest.config.ts`)
 
-**What it tests**:
-- ✅ All MVP tests
-- ✅ Grid layout: 3x2 (6 per page)
-- ✅ Grid layout: 2x3 (6 per page)
-- ✅ Grid layout: 4x1 (4 per page)
-- ✅ Grid layout: 2x2 (4 per page)
-- ✅ Performance metrics (download time, merge time)
-- ✅ Response structure validation
+- Environment: Node.js
+- Test timeout: 30 seconds
+- Coverage: v8 provider with text, JSON, and HTML reporters
 
-**Output**: Detailed JSON report with:
-- Test execution times
-- Response sizes
-- Page counts
-- Performance analysis
+### Playwright (`playwright.config.ts`)
 
-**Runtime**: ~10-15 minutes
-
-**Use when**: You need detailed validation or are troubleshooting issues
-
-```bash
-npm run test:full
-```
+- Browser: Chromium
+- Base URL: `TEST_BASE_URL` env var or `http://localhost:3000`
+- Auto-starts dev server when testing against localhost
+- CI mode: JSON + HTML reporters, no server reuse, 2 retries
+- Screenshots on failure, trace on first retry
 
 ---
 
-### Level 3: CI/CD Tests
+## Environment Variables
 
-**Purpose**: Fast automated validation for continuous integration
-
-**What it tests**:
-- ✅ API health check
-- ✅ Process endpoint reachability
-- ✅ Quick functional test (one layout)
-
-**Output**: Machine-parseable JSON (suitable for GitHub Actions)
-
-**Runtime**: ~2 minutes
-
-**Use when**: Running in GitHub Actions or CI pipeline
-
-```bash
-npm run test:ci
-```
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `TEST_BASE_URL` | `http://localhost:3000` | Target URL for Playwright tests |
+| `CI` | (unset) | Set to `true` to enable CI-mode reporters and retries |
 
 ---
 
 ## Test Reports
 
-All test runs generate JSON reports in the `test-reports/` directory:
+All test runs generate reports:
 
 ```
 test-reports/
-├── test-report-mvp-2026-02-07.json
-├── test-report-comprehensive-2026-02-07.json
-└── test-report-ci-2026-02-07.json
-```
+├── e2e-results.json          # Playwright JSON results (CI)
+├── test-report-mvp-*.json    # MVP test runner reports
+└── test-report-*.json        # Comprehensive test reports
 
-### Report Format
-
-```json
-{
-  "timestamp": "2026-02-07T12:34:56.789Z",
-  "level": "mvp",
-  "environment": "development",
-  "duration": 120000,
-  "totalTests": 3,
-  "passed": 3,
-  "failed": 0,
-  "results": [
-    {
-      "name": "Download from URL (Animal Pages)",
-      "passed": true,
-      "duration": 35000,
-      "details": {
-        "downloadUrl": "https://...",
-        "filename": "coloring-grid.pdf",
-        "pageCount": 8
-      }
-    }
-  ]
-}
+playwright-report/            # Playwright HTML report
+test-results/                 # Playwright traces and screenshots
 ```
 
 ---
 
-## Understanding Test Results
+## Adding New Tests
 
-### Passing Tests ✅
+### Adding a Vitest Test
 
-All tests passed and results were as expected:
-- Download completed successfully
-- PDFs merged correctly
-- Response contained valid download URL
-- No errors encountered
+Add files to the appropriate directory under `tests/`:
 
-### Failing Tests ❌
-
-One or more tests did not pass. Check:
-
-1. **Service Running?** - Is `npm run dev` still running?
-2. **Internet Connection?** - URL tests require downloading from websites
-3. **Error Message** - Check the test output for specific failure reason
-4. **Check Logs** - Look at server console for API errors
-
-### Common Failures
-
-| Failure | Cause | Solution |
-|---------|-------|----------|
-| "Service not reachable" | Dev server not running | Run `npm run dev` |
-| "No download URL returned" | API error | Check server logs |
-| "Network timeout" | Slow internet/website down | Check internet, retry |
-| "Invalid URL error" | Malformed URL | Verify URL is correct |
-
----
-
-## Running Tests in CI/CD (GitHub Actions)
-
-The test suite is ready for GitHub Actions. Add to your workflow:
-
-```yaml
-# .github/workflows/test.yml
-name: Run Tests
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-      - run: npm install
-      - run: npm run build
-      - run: npm run test:ci
+```
+tests/unit/       - Fast, isolated tests for individual modules
+tests/system/     - Tests for complete subsystem workflows
+tests/integration/ - Tests that span multiple subsystems
 ```
 
----
+### Adding a Playwright E2E Test
 
-## Interpreting Performance Metrics
-
-### Download Time
-- **Expected**: 5-30 seconds (depends on website & file count)
-- **Normal**: 10-20 seconds for 5-10 PDFs
-- **Slow**: > 30 seconds (check internet/website)
-
-### Merge Time
-- **Expected**: 1-5 seconds
-- **Normal**: 2-3 seconds
-- **Slow**: > 5 seconds (check PDF sizes)
-
-### Total Time
-- **MVP**: 2-3 minutes
-- **Comprehensive**: 10-15 minutes
-- **CI**: 1-2 minutes
-
----
-
-## Test Maintenance
-
-### Adding New Tests
-
-Edit `tests/test-runner.ts` and add to appropriate test level:
+Add `.spec.ts` files under `tests/e2e/`. They automatically run in both local and production stages.
 
 ```typescript
-// In runMvpTests(), runComprehensiveTests(), or runCiTests()
-await this.test('My new test', async () => {
-  // Your test code here
-  return { result: 'value' }
+import { test, expect } from '@playwright/test'
+
+test('my new feature works', async ({ page }) => {
+  await page.goto('/')
+  // interact with the UI
+  await expect(page.locator('text=Expected')).toBeVisible()
 })
 ```
 
-### Updating Test URLs
-
-Modify in `DEFAULT_CONFIG`:
-
-```typescript
-const DEFAULT_CONFIG: TestConfig = {
-  testUrls: [
-    'https://new-url-1.com/pdfs/',
-    'https://new-url-2.com/pdfs/',
-  ],
-  // ...
-}
-```
-
-### Customizing Timeout
-
-```bash
-npm run test:mvp -- --timeout 60000  # 60 second timeout
-```
+Tests added here will run against both localhost and the production URL with no changes needed.
 
 ---
 
 ## Troubleshooting
 
-### Tests won't run
+### Playwright tests fail locally
+
+1. Install browsers: `npx playwright install --with-deps chromium`
+2. Check that port 3000 is free (Playwright auto-starts the dev server)
+3. Run `npm run dev` manually and check for startup errors
+
+### Playwright tests fail in CI
+
+1. Check the GitHub Actions log for the `test` job
+2. Download the `test-results` artifact for screenshots and traces
+3. Open the Playwright HTML report: `npx playwright show-report`
+
+### Production e2e tests fail
+
+1. Verify the site is reachable: `curl -I http://coloring-book-web-app.s3-website-us-east-1.amazonaws.com`
+2. Check the `deploy` job completed successfully in GitHub Actions
+3. Download the `production-test-results` artifact for details
+4. The S3 static export may not support API routes -- some API tests may need to be skipped in production
+
+### Vitest tests fail
 
 1. Ensure `npm install` completed
 2. Check Node.js version: `node --version` (need 18+)
-3. Start dev server: `npm run dev`
-4. Try building first: `npm run build`
-
-### Tests timeout
-
-1. Check internet connection
-2. Websites might be slow/down - try later
-3. Increase timeout: Edit `DEFAULT_CONFIG.timeout` in `test-runner.ts`
-4. Run smaller test level (MVP instead of Comprehensive)
-
-### API errors in tests
-
-1. Check `npm run dev` console for errors
-2. Verify environment variables in `.env.local`
-3. Check S3 bucket is accessible (if testing downloads)
-4. Review server logs for detailed error messages
+3. Run `npm run test:unit` first to isolate the failure
 
 ---
 
-## Best Practices
+## Workflow Summary
 
-✅ **Do**:
-- Run MVP tests before pushing to main
-- Run full tests before major releases
-- Check reports for unexpected changes
-- Keep test URLs up-to-date
-- Run tests on different machines to verify consistency
-
-❌ **Don't**:
-- Run tests on production URLs (API calls will create real S3 files)
-- Run tests on slow/metered internet
-- Ignore test failures (investigate!)
-- Leave test reports uncommitted (add to .gitignore)
-
----
-
-## Example Test Run
-
-```bash
-$ npm run test:mvp
-
-🧪 Starting MVP Tests
-📍 Target: http://localhost:3000
-⏱️  Timeout: 30000ms
-
-✅ Download from URL (Animal Pages) (35000ms)
-✅ Download from URL (Valentine Pages) (32000ms)
-✅ Error Handling - Invalid URL (1200ms)
-
-==================================================
-📊 TEST SUMMARY
-==================================================
-Level: MVP
-Total: 3 tests
-✅ Passed: 3 | ❌ Failed: 0
-⏱️  Duration: 68.20s
-==================================================
-
-📄 Report saved to: test-reports/test-report-mvp-2026-02-07.json
+```
+Developer makes a change
+         |
+         v
+   ┌─────────────────────┐
+   │   STAGE 1: LOCAL     │
+   │                      │
+   │  1. Vitest tests     │
+   │  2. Build check      │
+   │  3. Playwright e2e   │
+   │     - API tests      │
+   │     - UI browser     │
+   └──────────┬───────────┘
+              │ all pass
+              v
+   ┌─────────────────────┐
+   │   STAGE 2: DEPLOY   │
+   │                      │
+   │  1. Push to main     │
+   │  2. GitHub Actions   │
+   │     auto-deploys     │
+   │  3. Wait for S3      │
+   └──────────┬───────────┘
+              │ deployed
+              v
+   ┌─────────────────────┐
+   │   STAGE 3: VERIFY   │
+   │                      │
+   │  1. Playwright e2e   │
+   │     against prod     │
+   │     - API tests      │
+   │     - UI browser     │
+   │  2. Smoke test       │
+   └──────────┬───────────┘
+              │ all pass
+              v
+        Change verified
 ```
 
 ---
 
-## Next Steps
-
-1. **Run MVP tests locally**: `npm run test:mvp`
-2. **Review reports**: Check `test-reports/` directory
-3. **Add to CI**: Update GitHub Actions workflow
-4. **Monitor**: Add tests to pre-commit hooks
-
----
-
-**Last Updated**: 2026-02-07
-**Status**: Ready for use
+**Last Updated**: 2026-02-08
+**Status**: Active - two-stage pipeline operational

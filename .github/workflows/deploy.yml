@@ -1,7 +1,10 @@
-name: Deploy to AWS
+name: Test, Deploy, and Verify
 
 on:
   push:
+    branches:
+      - main
+  pull_request:
     branches:
       - main
   workflow_dispatch:
@@ -9,9 +12,55 @@ on:
 env:
   AWS_REGION: us-east-1
   NODE_VERSION: '18'
+  PROD_URL: http://coloring-book-web-app.s3-website-us-east-1.amazonaws.com
 
 jobs:
+  # ─── Stage 1: Pre-deploy tests ────────────────────────────────────────────
+  test:
+    name: Stage 1 - Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit, system, and integration tests
+        run: npm run test:all
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright e2e tests against local dev server
+        run: npm run test:e2e:ci
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            test-results.json
+            test-reports/
+            playwright-report/
+          retention-days: 14
+
+  # ─── Stage 2: Deploy to S3 (only on push to main) ─────────────────────────
   deploy:
+    name: Stage 2 - Deploy
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -41,30 +90,71 @@ jobs:
 
       - name: Deploy to S3
         run: |
-          # Create S3 bucket if it doesn't exist
           if ! aws s3 ls "s3://coloring-book-web-app" 2>/dev/null; then
             aws s3 mb s3://coloring-book-web-app --region ${{ env.AWS_REGION }}
-            # Enable website hosting
             aws s3 website s3://coloring-book-web-app --index-document index.html --error-document 404.html 2>/dev/null || true
           fi
 
-          # Upload static export output (for Next.js with output: 'export')
           if [ -d out ]; then
             aws s3 sync out/ s3://coloring-book-web-app/ --delete
-          # Fallback: upload .next/static for older builds
           elif [ -d .next/static ]; then
             aws s3 sync .next/static s3://coloring-book-web-app/_next/static --cache-control "public, max-age=31536000" --delete
           fi
 
-          # Make S3 bucket public for website access (if not already)
           aws s3api put-bucket-acl --bucket coloring-book-web-app --acl public-read 2>/dev/null || true
 
-          echo "✅ Deployment successful!"
-          echo "Application URL: http://coloring-book-web-app.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
+          echo "Deployment successful!"
+          echo "URL: ${{ env.PROD_URL }}"
 
-      - name: Get deployment info
+  # ─── Stage 3: Post-deploy verification ─────────────────────────────────────
+  verify:
+    name: Stage 3 - Verify Production
+    needs: deploy
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Wait for deployment to propagate
         run: |
-          echo "Deployment to AWS S3 complete!"
-          echo "S3 Bucket: coloring-book-web-app"
-          echo "Region: us-east-1"
-          echo "Next steps: Configure CloudFront CDN for better performance"
+          echo "Waiting for S3 deployment to propagate..."
+          sleep 30
+          for i in 1 2 3 4 5; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ env.PROD_URL }}" || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "Production site is reachable (HTTP $STATUS)"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $STATUS — retrying in 15s..."
+            sleep 15
+          done
+          echo "Warning: site may not be fully propagated yet, proceeding with tests"
+
+      - name: Run Playwright e2e tests against production
+        run: TEST_BASE_URL="${{ env.PROD_URL }}" npx playwright test
+        env:
+          CI: 'true'
+
+      - name: Upload production test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-test-results
+          path: |
+            test-reports/
+            playwright-report/
+          retention-days: 14

@@ -1,0 +1,31 @@
+{
+  "version": "1.0",
+  "adapters": [
+    {
+      "id": "test-selector-1",
+      "domains": ["example.com"],
+      "strategy": "selector",
+      "selector": "a[href*=\".pdf\"]",
+      "confidence": 0.92,
+      "dateAdded": "2026-02-07T00:00:00Z",
+      "description": "Test adapter with CSS selector"
+    },
+    {
+      "id": "test-pattern-1",
+      "domains": ["patterns.com"],
+      "strategy": "pattern",
+      "pattern": "/pdf/.*\\.pdf",
+      "confidence": 0.85,
+      "dateAdded": "2026-02-07T00:00:00Z",
+      "description": "Test adapter with URL pattern"
+    },
+    {
+      "id": "test-javascript-1",
+      "domains": ["dynamic.com"],
+      "strategy": "javascript",
+      "confidence": 0.88,
+      "dateAdded": "2026-02-07T00:00:00Z",
+      "description": "Test adapter using JavaScript"
+    }
+  ]
+}

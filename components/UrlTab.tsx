@@ -14,7 +14,7 @@ export default function UrlTab({ onUrlChange, selectedUrl }: UrlTabProps) {
         </label>
         <input
           id="url"
-          type="url"
+          type="text"
           placeholder="https://example.com/coloring-pages"
           value={selectedUrl}
           onChange={(e) => onUrlChange(e.target.value)}

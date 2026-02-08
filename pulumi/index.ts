@@ -17,7 +17,7 @@ const bucket = new aws.s3.Bucket('coloring-book-pdfs', {
 })
 
 // Add lifecycle policy to auto-delete files after 1 hour
-const lifecyclePolicy = new aws.s3.BucketLifecycleConfigurationV2(
+new aws.s3.BucketLifecycleConfigurationV2(
   'coloring-book-lifecycle',
   {
     bucket: bucket.id,

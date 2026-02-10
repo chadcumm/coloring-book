@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+dist/
+
+# Test files & coverage
+tests/
+coverage/
+test-results/
+playwright-report/
+test-reports/
+
+# Development
+.env.local
+.env.*.local
+.DS_Store
+
+# Build artifacts
+lambda-build/
+coloring-book-lambda.zip
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+docs/
+README.md
+DEPLOYMENT.md
+*.md
+
+# Misc
+.vercel/
+.claude/

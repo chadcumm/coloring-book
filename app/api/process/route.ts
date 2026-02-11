@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { handleFileUpload } from '@/lib/pdf-processor'
+import { handleUrlDownload } from '@/lib/url-scraper'
+import { createGridPdf } from '@/lib/grid-creator'
+import { uploadToS3 } from '@/lib/s3-client'
 
 const VALID_LAYOUTS = ['3x2', '2x3', '4x1', '2x2']
 const MAX_FILES = 20
@@ -56,10 +60,20 @@ export async function POST(request: NextRequest) {
       }
 
       console.log(`Processing ${files.length} files with grid layout ${gridLayout}`)
-      // TODO: Implement PDF processing
+
+      // Save uploaded files to temp directory
+      const pdfPaths = await handleFileUpload(files)
+
+      // Merge PDFs into grid
+      const outputPath = await createGridPdf(pdfPaths, gridLayout)
+
+      // Upload to S3 and get signed URL
+      const { downloadUrl, filename } = await uploadToS3(outputPath)
+
       return NextResponse.json({
-        message: 'PDF processing coming soon',
-        downloadUrl: null,
+        message: 'PDF grid created successfully',
+        downloadUrl,
+        filename,
       })
     }
 
@@ -73,10 +87,20 @@ export async function POST(request: NextRequest) {
       }
 
       console.log(`Scraping PDFs from ${url} with grid layout ${gridLayout}`)
-      // TODO: Implement URL scraping and PDF processing
+
+      // Download PDFs from URL (uses adapter system if available)
+      const pdfPaths = await handleUrlDownload(url)
+
+      // Merge PDFs into grid
+      const outputPath = await createGridPdf(pdfPaths, gridLayout)
+
+      // Upload to S3 and get signed URL
+      const { downloadUrl, filename } = await uploadToS3(outputPath)
+
       return NextResponse.json({
-        message: 'URL scraping coming soon',
-        downloadUrl: null,
+        message: 'PDF grid created from URL successfully',
+        downloadUrl,
+        filename,
       })
     }
   } catch (error) {

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Coloring Pages - Dynamic</title>
+</head>
+<body>
+    <h1>Download Coloring Pages</h1>
+    <div id="pdf-list"></div>
+    <script>
+        // Simulate dynamic PDF loading
+        setTimeout(() => {
+            const list = document.getElementById('pdf-list')
+            for (let i = 1; i <= 5; i++) {
+                const link = document.createElement('a')
+                link.href = `/dynamic/image_${String(i).padStart(3, '0')}.pdf`
+                link.textContent = `Dynamic Image ${i}`
+                list.appendChild(link)
+            }
+        }, 1000)
+    </script>
+</body>
+</html>
